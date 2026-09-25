@@ -1,0 +1,99 @@
+# .github/workflows/login.yml
+#
+# Fires when:
+#   - The admin's Render scheduler dispatches a `trigger-login` event each weekday morning
+#   - Anyone clicks "Run workflow" manually in the GitHub Actions tab
+#
+# Required repository secrets (Settings → Secrets and variables → Actions → New repository secret):
+#   CLIENT_ID        — your 10-digit AlgoTest phone number
+#   AT_PASSWORD      — your AlgoTest account password
+#   LOGIN_SERVER_URL — provided by the admin (the Render service URL, no trailing slash)
+
+name: AlgoTest Daily Login
+
+on:
+  repository_dispatch:
+    types: [trigger-login]
+  workflow_dispatch:
+
+# id-token: write is required to request a GitHub OIDC token.
+# The server uses this token to verify that the request genuinely came from
+# YOUR fork of this repo — it cannot be faked by anyone else.
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  login:
+    name: Run AlgoTest Login
+    runs-on: ubuntu-latest
+    timeout-minutes: 15      # hard ceiling; one login + retries should finish well under 5 min
+
+    steps:
+      - name: Login to AlgoTest (3 attempts, 30 s apart)
+        run: |
+          MAX_ATTEMPTS=3
+          DELAY=30
+
+          for attempt in $(seq 1 $MAX_ATTEMPTS); do
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "  Attempt $attempt of $MAX_ATTEMPTS"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+            # Fetch a FRESH OIDC token on every attempt.
+            # OIDC tokens are short-lived (~5 min); fetching once up-front and
+            # reusing across attempts risks a token-expired rejection on later
+            # retries if the first attempt stalled. Fetching fresh each time is
+            # the same pattern the server uses for its own installation tokens.
+            echo "Fetching OIDC token..."
+            OIDC_TOKEN=$(curl --silent --fail \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=render-api-audience" \
+              | jq -r '.value')
+
+            if [ -z "$OIDC_TOKEN" ] || [ "$OIDC_TOKEN" = "null" ]; then
+              echo "ERROR: Failed to obtain OIDC token — cannot authenticate with server."
+              exit 1
+            fi
+            echo "OIDC token obtained."
+
+            # POST to the login server.
+            # -w "\n%{http_code}" appends the HTTP status code on its own line
+            # so we can split body and status apart cleanly.
+            RESPONSE=$(curl --silent \
+              --max-time 300 \
+              -w "\n%{http_code}" \
+              -X POST "${{ secrets.LOGIN_SERVER_URL }}/login" \
+              -H "Authorization: Bearer $OIDC_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"client_id\":   \"${{ secrets.CLIENT_ID }}\",
+                \"password\":    \"${{ secrets.AT_PASSWORD }}\",
+                \"totp_secret\": \"\",
+                \"broker\":      \"algotest\"
+              }")
+
+            HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+            BODY=$(echo "$RESPONSE" | head -n -1)
+
+            echo "HTTP status : $HTTP_CODE"
+            echo "Response    : $BODY"
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo ""
+              echo "✅ Login successful on attempt $attempt."
+              exit 0
+            fi
+
+            echo "❌ Attempt $attempt failed (HTTP $HTTP_CODE)."
+
+            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then
+              echo "Waiting ${DELAY}s before next attempt..."
+              sleep $DELAY
+            fi
+          done
+
+          echo ""
+          echo "❌ All $MAX_ATTEMPTS attempts failed. Check Telegram for details."
+          exit 1
