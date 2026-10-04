@@ -1,103 +1,151 @@
 # AlgoTest Automated Daily Login
 
-This repository automates your daily AlgoTest login every weekday morning, so your broker sessions are always fresh and ready for algo trading — without you having to do anything manually.
+This repository automates your daily AlgoTest login every weekday morning — including logging in your connected brokers (Upstox, Flattrade) — so your trading strategies are ready to run without you having to do anything manually.
 
-**How it works:** A secure server triggers this workflow each morning at your scheduled time. The workflow logs in to [algotest.in](https://algotest.in) using your credentials, which are stored as encrypted secrets in your own GitHub account and never visible to anyone else.
+You will receive a message on Telegram via **@Algotest_daily_login_bot** every morning confirming whether your login succeeded or failed.
 
 ---
 
-## Setup — 3 steps, takes about 5 minutes
+## What you will receive on Telegram every morning
+
+**On success:**
+```
+Login SUCCESS
+Phone: 98XXXXXXXX
+Brokers: upstox New: LOGGED IN | Flattrade: LOGGED IN
+```
+
+**On failure:**
+```
+Login FAILED
+Phone: 98XXXXXXXX
+Error: (reason for failure)
+```
+
+If it fails, the workflow automatically retries 3 times before sending the failure message.
+
+---
+
+## Setup — 3 steps, about 5 minutes
 
 ### Step 1 — Fork this repository
 
 Click the **Fork** button at the top-right of this page.
 
-Make sure you fork it to **your personal GitHub account** (not an organisation).  
-Keep the repository name as-is — **do not rename it**.
+- Fork it to your **personal GitHub account** (not an organisation)
+- **Do not rename the repository** — keep the name exactly as-is
 
 ---
 
 ### Step 2 — Add your secrets
 
-Your login credentials are stored as encrypted GitHub secrets. Only you and GitHub can see them — not the admin, not anyone else.
+Go to your forked repository → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
 
-1. In your forked repository, go to **Settings** (top menu bar)
-2. In the left sidebar click **Secrets and variables → Actions**
-3. Click **New repository secret** and add each of the following:
+Add the secrets that apply to you based on which brokers you have connected on AlgoTest:
 
-| Secret name | What to put in it |
+#### Everyone must add these 2 secrets:
+
+| Secret name | What to enter |
 |---|---|
-| `CLIENT_ID` | Your **10-digit mobile number** registered on AlgoTest (numbers only, no spaces, no +91) |
+| `PHONE_NUMBER` | Your **10-digit mobile number** registered on AlgoTest (no spaces, no +91) |
 | `AT_PASSWORD` | Your **AlgoTest account password** |
-| `LOGIN_SERVER_URL` | The URL the admin gives you (ask them for this — do not share it publicly) |
 
-Add them one at a time. Each one is encrypted the moment you save it.
+#### If you have Upstox connected on AlgoTest, also add:
 
-> ⚠️ **Never put your credentials in any file in this repo** — only ever in Secrets as above.
+| Secret name | What to enter |
+|---|---|
+| `TOTP_SECRET` | Your Upstox TOTP secret key (the alphanumeric code shown when you set up your Upstox authenticator app) |
+| `PIN` | Your Upstox **6-digit login PIN** |
+
+#### If you have Flattrade connected on AlgoTest, also add:
+
+| Secret name | What to enter |
+|---|---|
+| `U` | Your Flattrade **User ID** (e.g. FZ12345) |
+| `P` | Your Flattrade **account password** |
+| `T` | Your Flattrade TOTP secret key (the alphanumeric code shown when you set up your Flattrade authenticator app) |
+
+> **Add only the secrets that apply to your brokers.** If you have both Upstox and Flattrade, add all 7 secrets. If you only have Upstox, skip U, P, T. If you only have Flattrade, skip TOTP_SECRET and PIN.
+
+> **Where do I find my TOTP secret key?**
+> It is the alphanumeric code (looks like `JBSWY3DPEHPK3PXP`) shown when you first set up the authenticator app for your broker. If you no longer have it, reset your 2FA on the broker's website — the new code shown during that setup is your TOTP secret key.
 
 ---
 
 ### Step 3 — Install the GitHub App
 
-The admin's server needs permission to trigger your workflow each morning. You grant this by installing a GitHub App on your fork.
+The admin's server needs permission to trigger your workflow each morning.
 
-1. Click this link to install the app: **[Install AlgoTest Login App](#)** *(admin will replace this with the real link)*
+1. Click this link to install: **[Install AlgoTest Login App](#)** *(admin will share the correct link)*
 2. On the installation page, select **Only select repositories**
-3. Choose **your fork** of this repository from the dropdown
+3. Choose **your fork** of this repository
 4. Click **Install**
 
-That's it. The admin will confirm once you're scheduled and active.
+Let your admin know once you have completed all three steps. They will confirm when you are scheduled and active, and send you your first test message on Telegram.
 
 ---
 
 ## What happens every weekday morning
 
-At your scheduled IST time (set by the admin):
+At your scheduled time (set by the admin, typically 8:00–8:15 AM IST):
 
 1. The server triggers your workflow automatically
-2. The workflow logs in to AlgoTest with your credentials
-3. Any broker "Login" buttons visible in the AlgoTest dashboard sidebar are clicked automatically
-4. You receive a Telegram message — ✅ if successful, ❌ with an error if something went wrong
+2. Logs in to **AlgoTest** with your phone number and password
+3. Logs in your connected brokers (Upstox and/or Flattrade) one by one
+4. Sends you a **success or failure message** on Telegram via **@Algotest_daily_login_bot**
 
-No action is needed from you on any normal day.
+You do not need to do anything on normal days.
 
 ---
 
-## Manual trigger (optional)
+## Secrets quick reference
 
-If you want to run the login yourself at any time — for example, to test that everything is set up correctly:
-
-1. Go to the **Actions** tab in your forked repository
-2. Click **AlgoTest Daily Login** in the left sidebar
-3. Click **Run workflow → Run workflow**
-
-You'll receive a Telegram message with the result within a minute or two.
+| Secret | Required for | Example |
+|---|---|---|
+| `PHONE_NUMBER` | Everyone | `9876543210` |
+| `AT_PASSWORD` | Everyone | `MyAlgoPass@123` |
+| `TOTP_SECRET` | Upstox users | `JBSWY3DPEHPK3PXP` |
+| `PIN` | Upstox users | `123456` |
+| `U` | Flattrade users | `FZ12345` |
+| `P` | Flattrade users | `MyFlatPass@123` |
+| `T` | Flattrade users | `ABCDEFGHIJKLMNOP` |
 
 ---
 
 ## Troubleshooting
 
-**I got a ❌ failure message on Telegram**  
-The workflow retries 3 times automatically before reporting a failure. If it still fails, the most common causes are:
-- Your AlgoTest password recently changed → update the `AT_PASSWORD` secret
-- AlgoTest showed an OTP / SMS verification screen (this can happen on new devices or IPs) → contact the admin
+**I received a failure message**
 
-**I didn't get any Telegram message**  
-- Check the **Actions** tab in your fork to see if the workflow ran at all
-- Make sure the GitHub App is still installed (Settings → Integrations → GitHub Apps)
-- Contact the admin — they can see your login result on their end too
+The workflow retries 3 times before reporting failure. Common causes:
 
-**The workflow shows "Resource not accessible by integration"**  
-The GitHub App was either not installed, or was installed on the wrong repository. Re-do Step 3 and make sure you selected your fork specifically.
+- **Wrong password** — update `AT_PASSWORD` in your secrets and try again
+- **Wrong TOTP secret** — the key does not match what your broker has on file; reset 2FA on the broker's website and update the secret
+- **Wrong PIN** — update `PIN` in your secrets
+- **AlgoTest showed an extra verification step** — contact the admin via Telegram, they can check what happened
 
-**I need to change my password**  
-Go to **Settings → Secrets and variables → Actions**, click the pencil icon next to `AT_PASSWORD`, and enter the new value. The next scheduled run will use it automatically.
+**I did not receive any Telegram message**
+
+- Check the **Actions** tab in your fork — did the workflow run?
+- Make sure the GitHub App is still installed: Settings → Integrations → GitHub Apps
+- Message **@Algotest_daily_login_bot** — the admin will follow up
+
+**I need to update my password, PIN or TOTP secret**
+
+Go to **Settings → Secrets and variables → Actions**, click the pencil icon next to the secret, enter the new value and save. The change takes effect on the next login.
+
+**I want to add a broker I did not set up initially**
+
+Add the relevant secrets (`TOTP_SECRET` + `PIN` for Upstox, or `U` + `P` + `T` for Flattrade) and message the admin so they can verify the broker is connected on your AlgoTest account.
+
+**I want to stop the automation**
+
+Go to **Settings → Integrations → GitHub Apps → Configure → Uninstall**. This removes the server's permission to trigger your workflow. Your secrets remain safely in your account.
 
 ---
 
-## Security notes
+## Security
 
-- Your credentials are stored only in **your own GitHub account** as encrypted secrets
-- The login server receives your credentials over HTTPS on each run and uses them only to drive the browser — they are never logged or stored anywhere on the server
-- The GitHub OIDC token in the workflow proves to the server that the request came from your specific fork — it cannot be replayed or spoofed by anyone else
-- You can revoke the GitHub App's access at any time: Settings → Integrations → GitHub Apps → Configure → Uninstall
+- Your credentials are stored only in **your own GitHub account** as encrypted secrets — the admin cannot see them
+- Credentials are sent to the login server over HTTPS only during the login run and are never stored
+- The GitHub OIDC token used for authentication is unique to your fork and cannot be reused or faked by anyone else
+- Login result messages are sent only to your own Telegram chat
