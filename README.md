@@ -65,7 +65,16 @@ Add the secrets that apply to you based on which brokers you have connected on A
 | `P` | Your Flattrade **account password** |
 | `T` | Your Flattrade TOTP secret key (the alphanumeric code shown when you set up your Flattrade authenticator app) |
 
-> **Add only the secrets that apply to your brokers.** If you have both Upstox and Flattrade, add all 7 secrets. If you only have Upstox, skip U, P, T. If you only have Flattrade, skip TOTP_SECRET and PIN.
+#### If you have Kotak Neo connected on AlgoTest, also add:
+
+| Secret name | What to enter |
+|---|---|
+| `KN_CLIENT_ID` | Your Kotak Neo **Client ID** (e.g. AB1234) |
+| `KN_MOBILE` | Your **registered mobile number** on Kotak |
+| `KN_TOTP_SECRET` | Your Kotak TOTP secret key (from authenticator setup) |
+| `KN_PIN` | Your Kotak **6-digit MPIN** |
+
+> **Add only the secrets that apply to your brokers.** Mix and match freely. If you only have Upstox, skip U, P, T. If you only have Flattrade, skip TOTP_SECRET and PIN.
 
 > **Where do I find my TOTP secret key?**
 > It is the alphanumeric code (looks like `JBSWY3DPEHPK3PXP`) shown when you first set up the authenticator app for your broker. If you no longer have it, reset your 2FA on the broker's website — the new code shown during that setup is your TOTP secret key.
@@ -121,6 +130,10 @@ You do not need to do anything on normal days.
 | `U` | Flattrade users | `FZ12345` |
 | `P` | Flattrade users | `MyFlatPass@123` |
 | `T` | Flattrade users | `ABCDEFGHIJKLMNOP` |
+| `KN_CLIENT_ID` | Kotak Neo users | `AB1234` |
+| `KN_MOBILE` | Kotak Neo users | `9876543210` |
+| `KN_TOTP_SECRET` | Kotak Neo users | `JBSWY3DPEHPK3PXP` |
+| `KN_PIN` | Kotak Neo users | `123456` |
 
 ---
 
