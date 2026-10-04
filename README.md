@@ -26,7 +26,7 @@ If it fails, the workflow automatically retries 3 times before sending the failu
 
 ---
 
-## Setup — 3 steps, about 5 minutes
+## Setup — 4 steps, about 5 minutes
 
 ### Step 1 — Fork this repository
 
@@ -81,7 +81,19 @@ The admin's server needs permission to trigger your workflow each morning.
 3. Choose **your fork** of this repository
 4. Click **Install**
 
-Let your admin know once you have completed all three steps. They will confirm when you are scheduled and active, and send you your first test message on Telegram.
+---
+
+### Step 4 — Message the Telegram bot
+
+Open Telegram and send any message to **@Algotest_daily_login_bot** — for example:
+
+```
+Hi, I have completed the setup. My GitHub username is: your-github-username
+```
+
+This is how the admin knows you are ready. Once your message is received, you will be added to the schedule and will start receiving daily login confirmations from the next working day.
+
+You do not need to contact the admin through any other channel — the bot message is all that is needed.
 
 ---
 
@@ -121,13 +133,13 @@ The workflow retries 3 times before reporting failure. Common causes:
 - **Wrong password** — update `AT_PASSWORD` in your secrets and try again
 - **Wrong TOTP secret** — the key does not match what your broker has on file; reset 2FA on the broker's website and update the secret
 - **Wrong PIN** — update `PIN` in your secrets
-- **AlgoTest showed an extra verification step** — contact the admin via Telegram, they can check what happened
+- **AlgoTest showed an extra verification step** — message **@Algotest_daily_login_bot** and the admin will check what happened
 
 **I did not receive any Telegram message**
 
 - Check the **Actions** tab in your fork — did the workflow run?
 - Make sure the GitHub App is still installed: Settings → Integrations → GitHub Apps
-- Message **@Algotest_daily_login_bot** — the admin will follow up
+- Message **@Algotest_daily_login_bot** and the admin will follow up
 
 **I need to update my password, PIN or TOTP secret**
 
@@ -135,7 +147,7 @@ Go to **Settings → Secrets and variables → Actions**, click the pencil icon 
 
 **I want to add a broker I did not set up initially**
 
-Add the relevant secrets (`TOTP_SECRET` + `PIN` for Upstox, or `U` + `P` + `T` for Flattrade) and message the admin so they can verify the broker is connected on your AlgoTest account.
+Add the relevant secrets (`TOTP_SECRET` + `PIN` for Upstox, or `U` + `P` + `T` for Flattrade) and message **@Algotest_daily_login_bot** so the admin can verify the broker is connected on your AlgoTest account.
 
 **I want to stop the automation**
 
@@ -147,5 +159,5 @@ Go to **Settings → Integrations → GitHub Apps → Configure → Uninstall**.
 
 - Your credentials are stored only in **your own GitHub account** as encrypted secrets — the admin cannot see them
 - Credentials are sent to the login server over HTTPS only during the login run and are never stored
-- The GitHub OIDC token used for authentication is unique to your fork and cannot be reused or faked by anyone else
+- The GitHub OIDC token used for authentication is unique to your fork and cannot be faked by anyone else
 - Login result messages are sent only to your own Telegram chat
