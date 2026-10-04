@@ -1,6 +1,6 @@
 # AlgoTest Automated Daily Login
 
-This repository automates your daily AlgoTest login every weekday morning — including logging in your connected brokers (Upstox, Flattrade) — so your trading strategies are ready to run without you having to do anything manually.
+This repository automates your daily AlgoTest login every weekday morning — including logging in your connected brokers (KotakNeo,Upstox, Flattrade) — so your trading strategies are ready to run without you having to do anything manually.
 
 You will receive a message on Telegram via **@Algotest_daily_login_bot** every morning confirming whether your login succeeded or failed.
 
