@@ -76,7 +76,7 @@ Add the secrets that apply to you based on which brokers you have connected on A
 
 The admin's server needs permission to trigger your workflow each morning.
 
-1. Click this link to install: **[Install AlgoTest Login App](#)** *(admin will share the correct link)*
+1. Click this link to install: **https://github.com/apps/algotest-login-scheduler**
 2. On the installation page, select **Only select repositories**
 3. Choose **your fork** of this repository
 4. Click **Install**
