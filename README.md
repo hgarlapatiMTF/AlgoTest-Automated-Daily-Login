@@ -112,7 +112,7 @@ At your scheduled time (set by the admin, typically 8:00–8:15 AM IST):
 
 1. The server triggers your workflow automatically
 2. Logs in to **AlgoTest** with your phone number and password
-3. Logs in your connected brokers (Upstox and/or Flattrade) one by one
+3. Logs in your connected brokers (KotakNeo\Upstox\Flattrade)
 4. Sends you a **success or failure message** on Telegram via **@Algotest_daily_login_bot**
 
 You do not need to do anything on normal days.
