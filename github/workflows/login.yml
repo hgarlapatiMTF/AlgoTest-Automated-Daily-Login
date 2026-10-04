@@ -1,13 +1,13 @@
 # .github/workflows/login.yml
 #
-# Fires when:
-#   - The admin's Render scheduler dispatches a `trigger-login` event each weekday morning
-#   - Anyone clicks "Run workflow" manually in the GitHub Actions tab
-#
-# Required repository secrets (Settings → Secrets and variables → Actions → New repository secret):
-#   CLIENT_ID        — your 10-digit AlgoTest phone number
-#   AT_PASSWORD      — your AlgoTest account password
-#   LOGIN_SERVER_URL — provided by the admin (the Render service URL, no trailing slash)
+# Required secrets (Settings -> Secrets and variables -> Actions):
+#   PHONE_NUMBER     Your 10-digit mobile number registered on AlgoTest
+#   AT_PASSWORD      Your AlgoTest account password
+#   TOTP_SECRET      Your Upstox TOTP secret key   (Upstox users only)
+#   PIN              Your Upstox 6-digit PIN        (Upstox users only)
+#   U                Your Flattrade User ID          (Flattrade users only)
+#   P                Your Flattrade password         (Flattrade users only)
+#   T                Your Flattrade TOTP secret key  (Flattrade users only)
 
 name: AlgoTest Daily Login
 
@@ -16,36 +16,53 @@ on:
     types: [trigger-login]
   workflow_dispatch:
 
-# id-token: write is required to request a GitHub OIDC token.
-# The server uses this token to verify that the request genuinely came from
-# YOUR fork of this repo — it cannot be faked by anyone else.
 permissions:
   id-token: write
   contents: read
 
 jobs:
   login:
-    name: Run AlgoTest Login
+    name: AlgoTest + Broker Login
     runs-on: ubuntu-latest
-    timeout-minutes: 15      # hard ceiling; one login + retries should finish well under 5 min
+    timeout-minutes: 15
 
     steps:
-      - name: Login to AlgoTest (3 attempts, 30 s apart)
+      - name: Login (3 attempts, 30s apart)
+        env:
+          PHONE_NUMBER: ${{ secrets.PHONE_NUMBER }}
+          AT_PASSWORD:  ${{ secrets.AT_PASSWORD }}
+          TOTP_SECRET:  ${{ secrets.TOTP_SECRET }}
+          PIN:          ${{ secrets.PIN }}
+          U:              ${{ secrets.U }}
+          P:              ${{ secrets.P }}
+          T:              ${{ secrets.T }}
+          KN_CLIENT_ID:   ${{ secrets.KN_CLIENT_ID }}
+          KN_MOBILE:      ${{ secrets.KN_MOBILE }}
+          KN_TOTP_SECRET: ${{ secrets.KN_TOTP_SECRET }}
+          KN_PIN:         ${{ secrets.KN_PIN }}
         run: |
+          # Guard: fail immediately if required secrets are missing
+          MISSING=""
+          [ -z "$PHONE_NUMBER" ] && MISSING="$MISSING PHONE_NUMBER"
+          [ -z "$AT_PASSWORD" ]  && MISSING="$MISSING AT_PASSWORD"
+          if [ -n "$MISSING" ]; then
+            echo "ERROR: Missing required secret(s): $MISSING"
+            echo "Add them in Settings -> Secrets and variables -> Actions"
+            exit 1
+          fi
+
+          # Server URL is managed by admin — users do not need to configure this
+          SERVER_URL="https://algotest-api.onrender.com"
+
           MAX_ATTEMPTS=3
           DELAY=30
 
           for attempt in $(seq 1 $MAX_ATTEMPTS); do
             echo ""
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "========================================"
             echo "  Attempt $attempt of $MAX_ATTEMPTS"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "========================================"
 
-            # Fetch a FRESH OIDC token on every attempt.
-            # OIDC tokens are short-lived (~5 min); fetching once up-front and
-            # reusing across attempts risks a token-expired rejection on later
-            # retries if the first attempt stalled. Fetching fresh each time is
-            # the same pattern the server uses for its own installation tokens.
             echo "Fetching OIDC token..."
             OIDC_TOKEN=$(curl --silent --fail \
               -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
@@ -53,26 +70,18 @@ jobs:
               | jq -r '.value')
 
             if [ -z "$OIDC_TOKEN" ] || [ "$OIDC_TOKEN" = "null" ]; then
-              echo "ERROR: Failed to obtain OIDC token — cannot authenticate with server."
+              echo "ERROR: Failed to obtain OIDC token."
               exit 1
             fi
             echo "OIDC token obtained."
 
-            # POST to the login server.
-            # -w "\n%{http_code}" appends the HTTP status code on its own line
-            # so we can split body and status apart cleanly.
             RESPONSE=$(curl --silent \
               --max-time 300 \
               -w "\n%{http_code}" \
-              -X POST "${{ secrets.LOGIN_SERVER_URL }}/login" \
+              -X POST "${SERVER_URL}/login" \
               -H "Authorization: Bearer $OIDC_TOKEN" \
               -H "Content-Type: application/json" \
-              -d "{
-                \"client_id\":   \"${{ secrets.CLIENT_ID }}\",
-                \"password\":    \"${{ secrets.AT_PASSWORD }}\",
-                \"totp_secret\": \"\",
-                \"broker\":      \"algotest\"
-              }")
+              -d "{\"phone_number\":\"${PHONE_NUMBER}\",\"password\":\"${AT_PASSWORD}\",\"totp_secret\":\"${TOTP_SECRET}\",\"pin\":\"${PIN}\",\"broker\":\"algotest\",\"u\":\"${U}\",\"p\":\"${P}\",\"t\":\"${T}\"}")
 
             HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
             BODY=$(echo "$RESPONSE" | head -n -1)
@@ -81,19 +90,16 @@ jobs:
             echo "Response    : $BODY"
 
             if [ "$HTTP_CODE" = "200" ]; then
-              echo ""
-              echo "✅ Login successful on attempt $attempt."
+              echo "Login successful on attempt $attempt."
               exit 0
             fi
 
-            echo "❌ Attempt $attempt failed (HTTP $HTTP_CODE)."
-
+            echo "Attempt $attempt failed (HTTP $HTTP_CODE)."
             if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then
-              echo "Waiting ${DELAY}s before next attempt..."
+              echo "Waiting ${DELAY}s before retry..."
               sleep $DELAY
             fi
           done
 
-          echo ""
-          echo "❌ All $MAX_ATTEMPTS attempts failed. Check Telegram for details."
+          echo "All $MAX_ATTEMPTS attempts failed. Check Telegram for screenshot."
           exit 1
